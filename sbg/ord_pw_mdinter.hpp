@@ -29,7 +29,7 @@
 #define SBG_ORD_PW_MDINTERVAL_HPP
 
 #include <boost/container/flat_set.hpp>
-
+#include <list>
 #include "sbg/multidim_inter.hpp"
 
 namespace SBG {
@@ -127,7 +127,11 @@ struct OrdPWMDInter {
    */
   MDInterOrdSet traverse(SetPiece (SetPiece::*f)(const SetPiece &) const
                          , const OrdPWMDInter &other) const;
+  OrdPWMDInter ordSets(const OrdPWMDInter &other) const;
+  
+  std::vector<OrdPWMDInter> makeObjectives(const SetPiece &other) const;
 };
+
 std::ostream &operator<<(std::ostream &out, const OrdPWMDInter &i);
 
 typedef OrdPWMDInter OrdSet;

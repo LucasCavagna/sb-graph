@@ -144,120 +144,162 @@ Util::MD_NAT OrdPWMDInter::maxElem() const
   return it->maxElem();
 }
 
-OrdPWMDInter OrdPWMDInter::intersection(const OrdPWMDInter &other) const
-{
-  // Special cases to enhance performance
-  if (isEmpty() || other.isEmpty())
-    return OrdPWMDInter();
+OrdPWMDInter OrdPWMDInter::intersection(const OrdPWMDInter &other) const {
 
-  if (maxElem() < other.minElem())
-    return OrdPWMDInter();
+    if (isEmpty() || other.isEmpty())
+        return OrdPWMDInter();
 
-  if (other.maxElem() < minElem())
-    return OrdPWMDInter();
+    if (pieces_ == other.pieces_)
+        return *this;
+        
+    const OrdPWMDInter *shortSet = this;
+    const OrdPWMDInter *longSet  = &other;
+    if (other.pieces_.size() < pieces_.size()) {
+        shortSet = &other;
+        longSet  = this;
+    }
 
-  if (maxElem() == other.minElem()) {
-    return OrdPWMDInter(SetPiece(maxElem()));
-  }
+    std::list<size_t> longIndices;
+    for (size_t i = 0; i < longSet->pieces_.size(); ++i) {
+        longIndices.push_back(i);
+    }
 
-  if (other.maxElem() == minElem())
-    return OrdPWMDInter(SetPiece(other.maxElem()));
+    OrdPWMDInter inter;
+    auto itLong = longSet->begin();
+    SetPiece mdi1;
+   
+    for (const auto &element : shortSet->pieces_) {
+        const auto elementMin = element.minElem();
+        const auto elementMax = element.maxElem();
+        const auto elementMin0 = elementMin[0];
+        const auto elementMax0 = elementMax[0];
 
-  if (pieces_ == other.pieces_)
-    return *this;
+        auto it = longIndices.begin();
+        while (it != longIndices.end()) {
+            size_t idx = *it;
+            mdi1 = *(itLong+idx);
+            const auto mdi1Min = mdi1.minElem();
+            const auto mdi1Max = mdi1.maxElem();
+            const auto mdi1Min0 = mdi1Min[0];
+            const auto mdi1Max0 = mdi1Max[0];
 
-  // General case
-  MDInterOrdSet cap = boundedTraverse(&SetPiece::intersection, other);
+            
+            if (mdi1Max0 < elementMin0) {
+                it = longIndices.erase(it);
+                continue;
+            }
 
-  return OrdPWMDInter(cap);
+            if (elementMax0 < mdi1Min0)
+                break;
+
+            if (!(mdi1Max < elementMin) && !(elementMax < mdi1Min))
+                inter.emplaceBack(element.intersection(mdi1));
+
+            ++it;
+        }
+
+        if (longIndices.empty())
+            break;
+    }
+
+    return inter;
 }
+
+ 
 
 OrdPWMDInter OrdPWMDInter::cup(const OrdPWMDInter &other) const
 {
-  OrdPWMDInter un;
+  OrdPWMDInter res;
 
   if (isEmpty())
     return other;
- 
+
   if (other.isEmpty())
     return *this;
 
   if (pieces_ == other.pieces_)
-    return pieces_;
+    return *this;
 
   if (maxElem() < other.minElem()) {
     for (const SetPiece &mdi1 : pieces_)
-      un.emplaceBack(mdi1);
+      res.emplaceBack(mdi1);
 
     for (const SetPiece &mdi2 : other.pieces_)
-      un.emplaceBack(mdi2);
-    
-    return OrdPWMDInter(un);
+      res.emplaceBack(mdi2);
+
+    return res;
   }
 
   if (other.maxElem() < minElem()) {
     for (const SetPiece &mdi2 : other.pieces_)
-      un.emplaceBack(mdi2);
+      res.emplaceBack(mdi2);
 
     for (const SetPiece &mdi1 : pieces_)
-      un.emplaceBack(mdi1);
+      res.emplaceBack(mdi1);
 
-    return OrdPWMDInter(un);
+    return res;
   }
 
   // General case
+  OrdPWMDInter exclusive = difference(other);
+  if (!exclusive.isEmpty())
+    return exclusive.ordSets(other);
 
-  // As the complement operation will add intervals to our set, we choose the
-  // one with least quantity of them.  
-  OrdPWMDInter lt_pieces, gt_pieces;
-  int c_size1 = 0, c_size2 = 0;
-  for (const SetPiece &mdi1 : pieces_)
-    c_size1 += mdi1.begin()->step();
-  for (const SetPiece &mdi2 : other.pieces_)
-    c_size2 += mdi2.begin()->step();
-
-  if (c_size1 < c_size2) {
-    lt_pieces = *this;
-    gt_pieces = other;
-  }
-
-  else {
-    lt_pieces = other;
-    gt_pieces = *this;
-  }
-
-  OrdPWMDInter diff = gt_pieces.difference(lt_pieces);
-
-  return lt_pieces.concatenation(diff);
+  return other;
 }
 
 OrdPWMDInter OrdPWMDInter::complementAtom() const
 {
   OrdPWMDInter res;
+  
+  SetPiece mdi = *begin();
 
-  Interval i = begin()->operator[](0);
+  Interval univ(0, 1, Util::Inf);
+  SetPiece all(mdi.arity(), univ);
 
-  // Before interval
-  if (i.begin() != 0) {
-    Interval i_res(0, 1, i.begin() - 1);
-    if (!i_res.isEmpty())
-      res.emplaceBack(SetPiece(i_res));
+  unsigned int dim = 0;
+  for (const Interval &i : mdi) {
+    MDInterOrdSet c;
+
+    // Before interval
+    if (i.begin() != 0) {
+      Interval i_res(0, 1, i.begin() - 1);
+      if (!i_res.isEmpty()) {
+        all[dim] = i_res;
+        c.emplace_hint(c.cend(), all);
+        all[dim] = univ;
+      }
+    }
+
+    // "During" interval
+    if (i.begin() < Util::Inf) {
+      for (Util::NAT j = 1; j < i.step(); ++j) {
+        Interval i_res(i.begin() + j, i.step(), i.end());
+        if (!i_res.isEmpty()) {
+          all[dim] = i_res;
+          c.emplace_hint(c.cend(), all);
+        }
+      }
+      all[dim] = univ;
+    }
+
+    // After interval
+    if (i.end() < Util::Inf)
+      all[dim] = Interval(i.end() + 1, 1, Util::Inf);
+    else
+      all[dim] = Interval(Util::Inf);
+
+    c.emplace(all);
+    all[dim] = i;
+
+    // Initialize result
+    if (dim == 0)
+      res = OrdPWMDInter(c);
+    else
+      res = res.ordSets(OrdPWMDInter(c));
+
+    ++dim;
   }
-
-  // "During" interval
-  if (i.begin() < Util::Inf) {
-    for (Util::NAT j = 1; j < i.step(); ++j) {
-      Interval i_res(i.begin() + j, i.step(), i.end());
-      if (!i_res.isEmpty())
-        res.emplaceBack(SetPiece(i_res));
-     }
-  }
-
-  // After interval
-  if (i.end() < Util::Inf)
-    res.emplaceBack(SetPiece(Interval(i.end() + 1, 1, Util::Inf)));
-  else 
-    res.emplaceBack(SetPiece(Interval(Util::Inf)));
 
   return res;
 }
@@ -276,7 +318,7 @@ OrdPWMDInter OrdPWMDInter::complement() const
   ++first_it;
   MDInterOrdSet second(first_it, end());
   for (const SetPiece &mdi : second) {
-    OrdPWMDInter c = OrdPWMDInter(mdi).complementAtom();
+    OrdPWMDInter c = OrdPWMDInter(mdi).complementAtom();//Es necesario el complemento atomico? creo que no
     res = res.intersection(c);
   }
 
@@ -429,6 +471,91 @@ MDInterOrdSet OrdPWMDInter::traverse(
 
   return res;
 }
+
+
+OrdPWMDInter OrdPWMDInter::ordSets(const OrdPWMDInter &other) const
+{
+  OrdPWMDInter ordered;
+  //std::cout << "Entra" << std::endl;
+  //std::cout << *this << std::endl;
+  //std::cout << other << std::endl;
+  auto it1 = begin(), it2 = other.begin();
+  auto end1 = end(), end2 = other.end();
+
+  SetPiece mdi1, mdi2;
+
+  for (; it1 != end1 && it2 != end2;) {
+      mdi1 = *it1;
+      mdi2 = *it2;
+
+      int res = mdi1.whoseFirst(mdi2); 
+      //int res = mdi1.minElem() < mdi2.minElem();
+
+      if (res==0){
+        ordered.emplaceBack(mdi1);
+        ++it1;}
+      else{
+        ordered.emplaceBack(mdi2);
+        ++it2;
+        }
+    }
+
+    for (; it1 != end1; ++it1) {
+      mdi1 = *it1;
+      ordered.emplaceBack(mdi1);
+    }
+
+    for (; it2 != end2; ++it2) {
+      mdi2 = *it2;
+      ordered.emplaceBack(mdi2);
+    }
+    
+  //std::cout << "sale"<< std::endl;
+  //std::cout << ordered << std::endl;
+  return ordered;
+
+}  
+
+std::vector<OrdPWMDInter> OrdPWMDInter::makeObjectives(const SetPiece &other) const {
+    OrdPWMDInter nextSet, candidates;
+
+    // Pre-calculemos los valores de 'other' para evitar llamadas repetidas
+    const auto otherMin = other.minElem();
+    const auto otherMax = other.maxElem();
+    const auto otherMin0 = otherMin[0];
+    const auto otherMax0 = otherMax[0];
+
+    for (auto it = begin(), itEnd = end(); it != itEnd; ++it) {
+        const auto &mdi1 = *it;
+        const auto mdi1Min = mdi1.minElem();
+        const auto mdi1Max = mdi1.maxElem();
+        const auto mdi1Min0 = mdi1Min[0];
+        const auto mdi1Max0 = mdi1Max[0];
+
+        // Si el máximo de mdi1 es menor que el mínimo de other, saltamos
+        if (mdi1Max0 < otherMin0)
+            continue;
+
+        // Si el máximo de other es menor que el mínimo de mdi1, agregamos mdi1 y
+        // todos los elementos restantes a nextSet y salimos del bucle
+        if (otherMax0 < mdi1Min0) {
+            nextSet.emplaceBack(mdi1);
+            for (++it; it != itEnd; ++it) {
+                nextSet.emplaceBack(*it);
+            }
+            break;
+        }
+
+        // En otro caso, agregamos mdi1 a nextSet y, si se cumple la condición de intersección,
+        // también lo agregamos a candidates
+        nextSet.emplaceBack(mdi1);
+        if (!(mdi1Max < otherMin) && !(otherMax < mdi1Min))
+            candidates.emplaceBack(mdi1);
+    }
+
+    return { nextSet, candidates };
+}
+
 
 } // namespace LIB
 
