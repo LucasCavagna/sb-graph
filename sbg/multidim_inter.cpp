@@ -210,6 +210,27 @@ MultiDimInter::MaybeMDI MultiDimInter::compact(const MultiDimInter &other) const
   return res;
 }
 
+Util::NAT MultiDimInter::whoseFirst(const MultiDimInter &other) const
+{
+  if (other.isEmpty())
+    return 0;
+
+  if (isEmpty())
+    return 1;
+
+
+  for (unsigned int j = 0; j < other.cardinal(); j++)
+  {
+    if (operator[](j).begin() < other[j].begin())
+      return 0;
+    if (other[j].begin() < operator[](j).begin())
+      return 1;
+    
+  }
+  
+  return 0;
+}
+
 } // namespace LIB
 
 } // namespace SBG

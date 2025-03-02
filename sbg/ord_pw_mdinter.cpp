@@ -183,15 +183,17 @@ OrdPWMDInter OrdPWMDInter::intersection(const OrdPWMDInter &other) const {
             const auto mdi1Min0 = mdi1Min[0];
             const auto mdi1Max0 = mdi1Max[0];
 
-            
+            // Deletion case
             if (mdi1Max0 < elementMin0) {
                 it = longIndices.erase(it);
                 continue;
             }
-
+            
+            // Iterarion end case
             if (elementMax0 < mdi1Min0)
                 break;
-
+                
+            // Intersection case
             if (!(mdi1Max < elementMin) && !(elementMax < mdi1Min))
                 inter.emplaceBack(element.intersection(mdi1));
 
@@ -476,9 +478,7 @@ MDInterOrdSet OrdPWMDInter::traverse(
 OrdPWMDInter OrdPWMDInter::ordSets(const OrdPWMDInter &other) const
 {
   OrdPWMDInter ordered;
-  //std::cout << "Entra" << std::endl;
-  //std::cout << *this << std::endl;
-  //std::cout << other << std::endl;
+
   auto it1 = begin(), it2 = other.begin();
   auto end1 = end(), end2 = other.end();
 
@@ -487,17 +487,14 @@ OrdPWMDInter OrdPWMDInter::ordSets(const OrdPWMDInter &other) const
   for (; it1 != end1 && it2 != end2;) {
       mdi1 = *it1;
       mdi2 = *it2;
-
-      int res = mdi1.whoseFirst(mdi2); 
-      //int res = mdi1.minElem() < mdi2.minElem();
-
-      if (res==0){
+      
+      if (mdi2.whoseFirst(mdi1)){
         ordered.emplaceBack(mdi1);
         ++it1;}
       else{
         ordered.emplaceBack(mdi2);
         ++it2;
-        }
+      }
     }
 
     for (; it1 != end1; ++it1) {
@@ -510,52 +507,9 @@ OrdPWMDInter OrdPWMDInter::ordSets(const OrdPWMDInter &other) const
       ordered.emplaceBack(mdi2);
     }
     
-  //std::cout << "sale"<< std::endl;
-  //std::cout << ordered << std::endl;
   return ordered;
 
 }  
-
-std::vector<OrdPWMDInter> OrdPWMDInter::makeObjectives(const SetPiece &other) const {
-    OrdPWMDInter nextSet, candidates;
-
-    // Pre-calculemos los valores de 'other' para evitar llamadas repetidas
-    const auto otherMin = other.minElem();
-    const auto otherMax = other.maxElem();
-    const auto otherMin0 = otherMin[0];
-    const auto otherMax0 = otherMax[0];
-
-    for (auto it = begin(), itEnd = end(); it != itEnd; ++it) {
-        const auto &mdi1 = *it;
-        const auto mdi1Min = mdi1.minElem();
-        const auto mdi1Max = mdi1.maxElem();
-        const auto mdi1Min0 = mdi1Min[0];
-        const auto mdi1Max0 = mdi1Max[0];
-
-        // Si el máximo de mdi1 es menor que el mínimo de other, saltamos
-        if (mdi1Max0 < otherMin0)
-            continue;
-
-        // Si el máximo de other es menor que el mínimo de mdi1, agregamos mdi1 y
-        // todos los elementos restantes a nextSet y salimos del bucle
-        if (otherMax0 < mdi1Min0) {
-            nextSet.emplaceBack(mdi1);
-            for (++it; it != itEnd; ++it) {
-                nextSet.emplaceBack(*it);
-            }
-            break;
-        }
-
-        // En otro caso, agregamos mdi1 a nextSet y, si se cumple la condición de intersección,
-        // también lo agregamos a candidates
-        nextSet.emplaceBack(mdi1);
-        if (!(mdi1Max < otherMin) && !(otherMax < mdi1Min))
-            candidates.emplaceBack(mdi1);
-    }
-
-    return { nextSet, candidates };
-}
-
 
 } // namespace LIB
 

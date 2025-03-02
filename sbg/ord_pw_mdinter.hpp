@@ -128,8 +128,6 @@ struct OrdPWMDInter {
   MDInterOrdSet traverse(SetPiece (SetPiece::*f)(const SetPiece &) const
                          , const OrdPWMDInter &other) const;
   OrdPWMDInter ordSets(const OrdPWMDInter &other) const;
-  
-  std::vector<OrdPWMDInter> makeObjectives(const SetPiece &other) const;
 };
 
 std::ostream &operator<<(std::ostream &out, const OrdPWMDInter &i);
