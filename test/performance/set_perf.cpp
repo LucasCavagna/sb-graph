@@ -240,6 +240,135 @@ TEST(SetPerf, UnordIntersectionThreeDims)
   SUCCEED();
 }
 
+
+TEST(SetPerf, OrdIntersectionMultiInters)
+{
+  int N = 24000;
+
+  SBG::LIB::OrdSet s1, s2;
+  for (int j = 0; j < N; j++) {
+    SBG::LIB::Interval i1(j*100+1, 1, (j+1)*100);
+    SBG::LIB::Interval i2(0, 1, 1000000);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s1.emplaceBack(mdi);
+  }
+
+  for (int j = 0; j < N; j+=1) {
+    SBG::LIB::Interval i1(j*100+1, 1, (j+10)*100);
+    SBG::LIB::Interval i2(j*105+1, 1, (j+1)*105);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s2.emplaceBack(mdi);
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+  s1.intersection(s2);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::cout << "ORDERED INTERSECTION TEST elapsed time: " << elapsed.count() << "ms\n";
+
+  SUCCEED();
+}
+
+TEST(SetPerf, UnordIntersectionMultiInters)
+{
+  int N = 24000;
+
+  SBG::LIB::UnordSet s1, s2;
+  for (int j = 0; j < N; j++) {
+    SBG::LIB::Interval i1(j*100+1, 1, (j+1)*100);
+    SBG::LIB::Interval i2(0, 1, 1000000);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s1.emplaceBack(mdi);
+  }
+
+  for (int j = 0; j < N; j+=1) {
+    SBG::LIB::Interval i1(j*100+1, 1, (j+10)*100);
+    SBG::LIB::Interval i2(j*105+1, 1, (j+1)*105);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s2.emplaceBack(mdi);
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+  s1.intersection(s2);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::cout << "UNORDERED INTERSECTION TEST elapsed time: " << elapsed.count() << "ms\n";
+
+  SUCCEED();
+}
+
+TEST(SetPerf, OrdIntersectionTotalInters)
+{
+  int N = 50;
+
+  SBG::LIB::OrdSet s1, s2;
+  for (int j = 0; j < N; j++) {
+    SBG::LIB::Interval i1(j*100+1, 1, (j+1)*100);
+    SBG::LIB::Interval i2(0, 1, 1000000);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s1.emplaceBack(mdi);
+  }
+
+  for (int j = 0; j < N; j+=1) {
+    SBG::LIB::Interval i2(j*100+1, 1, (j+1)*100);
+    SBG::LIB::Interval i1(0, 1, 1000000);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s2.emplaceBack(mdi);
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+  s1.intersection(s2);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::cout << "ORDERED INTERSECTION TEST elapsed time: " << elapsed.count() << "ms\n";
+
+  SUCCEED();
+}
+
+TEST(SetPerf, UnordIntersectionTotalInters)
+{
+  int N = 0;
+
+  SBG::LIB::UnordSet s1, s2;
+  for (int j = 0; j < N; j++) {
+    SBG::LIB::Interval i1(j*100+1, 1, (j+1)*100);
+    SBG::LIB::Interval i2(0, 1, 10000000);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s1.emplaceBack(mdi);
+  }
+
+  for (int j = 0; j < N; j+=1) {
+    SBG::LIB::Interval i2(j*100+1, 1, (j+1)*100);
+    SBG::LIB::Interval i1(0, 1, 10000000);
+    SBG::LIB::MultiDimInter mdi;
+    mdi.emplaceBack(i1);
+    mdi.emplaceBack(i2);
+    s2.emplaceBack(mdi);
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+  s1.intersection(s2);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::cout << "UNORDERED INTERSECTION TEST elapsed time: " << elapsed.count() << "ms\n";
+
+  SUCCEED();
+}
+
 TEST(SetPerf, OrdIntersectionFiveDims)
 {
   int N = 6000;

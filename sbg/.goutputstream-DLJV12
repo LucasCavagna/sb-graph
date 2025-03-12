@@ -90,13 +90,6 @@ void OrdPWMDInter::emplaceBack(SetPiece mdi)
     pieces_.emplace_hint(pieces_.cend(), mdi);
 }
 
-MDInterOrdSetIt OrdPWMDInter::emplaceHint(SetPiece mdi,MDInterOrdSetIt mov)
-{
-  if (!mdi.isEmpty())
-    return pieces_.emplace_hint(mov, mdi);
-  
-}
-
 bool OrdPWMDInter::operator==(const OrdPWMDInter &other) const
 {
   return compact().pieces_ == other.compact().pieces_;
@@ -151,91 +144,61 @@ Util::MD_NAT OrdPWMDInter::maxElem() const
   return it->maxElem();
 }
 
-OrdPWMDInter OrdPWMDInter::intersection(const OrdPWMDInter &other) const {
-    // Casos triviales.
-    if (isEmpty() || other.isEmpty())
-        return OrdPWMDInter();
-    if (pieces_ == other.pieces_)
-        return *this;
-    // Seleccionamos el conjunto más corto para iterar externamente.
-    const OrdPWMDInter *shortSet = this;
-    const OrdPWMDInter *longSet  = &other;
-    if (other.pieces_.size() < pieces_.size()) {
-        shortSet = &other;
-        longSet  = this;
-    }
+OrdPWMDInter OrdPWMDInter::intersection(const OrdPWMDInter &other) const
+{ 
+  
+  //std::cout << "conjunto A "<< *this << std::endl;
+  //std::cout << "conjunto B "<< other << std::endl;
+  // Special cases to enhance performance
+  if (isEmpty() || other.isEmpty())
+    return OrdPWMDInter();
 
-    // Creamos una lista de índices para iterar sobre el conjunto largo.
-    std::forward_list<size_t> longIndices;
-    auto liIt = longIndices.before_begin();
-    const size_t longSize = longSet->pieces_.size();
-    for (size_t i = 0; i < longSize; ++i)
-        liIt = longIndices.insert_after(liIt, i);
+  if (pieces_ == other.pieces_)
+    return *this;
 
-    // Lista de resultados: se mantiene ordenada según el operador '<' de SetPiece.
-    OrdPWMDInter inter;
-    MDInterOrdSetIt it = inter.end();
-    // Se asume que el contenedor 'pieces_' del conjunto largo tiene acceso aleatorio.
-    auto longBegin = longSet->pieces_.begin();
-
-    // Iteramos sobre cada elemento del conjunto corto.
-    for (const auto &element : shortSet->pieces_) {
-        const auto elementMin = element.minElem();
-        const auto elementMax = element.maxElem();
-        const auto elementMin0 = elementMin[0];
-        const auto elementMax0 = elementMax[0];
-
-        // Iteradores para recorrer los índices del conjunto largo.
-        auto liPrev = longIndices.before_begin();
-        auto liCurr = longIndices.begin();
-        MDInterOrdSetIt itLocal = it;
-        bool bandera = true;
-        while (liCurr != longIndices.end()) {
-            size_t idx = *liCurr;
-            const SetPiece &longElem = *(longBegin + idx);
-            const auto longElemMin = longElem.minElem();
-            const auto longElemMax = longElem.maxElem();
-            const auto longElemMin0 = longElemMin[0];
-            const auto longElemMax0 = longElemMax[0];
-            auto interEnd = inter.end(); 
-            
-            // Si el elemento del conjunto largo es "demasiado chico", eliminamos su índice.
-            if (longElemMax0 < elementMin0) {
-                liCurr = longIndices.erase_after(liPrev);
-                continue;
-            }
-            // Si no se solapan, no hay más intersecciones para este elemento.
-            if (elementMax0 < longElemMin0)
-                break;
-
-            // Si hay intersección entre los elementos:
-            if (!(longElemMax < elementMin) && !(elementMax < longElemMin)) {
-                auto interRes = element.intersection(longElem);
-                  
-                itLocal = inter.emplaceHint(interRes, itLocal);   
-                if(bandera){
-                  bandera = false;
-                  it = itLocal;
-                }
-                
-
-                
-            }
-            ++liPrev;
-            ++liCurr;
-        }
-        if (longIndices.empty())
-            break; 
-        it = inter.end();
-    }
+  // Define otherPrime as a copy of other
+  OrdPWMDInter otherPrime = other;// Define otherPrime as a copy of other
+  OrdPWMDInter inter;
+  
+  // Iterate through all elements of this
+  for (const auto &element : this->pieces_)
+  { 
+    OrdPWMDInter interLocal;
+    //std::cout << "tenemos elemento "<< element << std::endl;
+    //std::cout << "sobre "<< otherPrime << std::endl;
+    // Define a vector of OrdPWMDInter and populate it with the result of makeObjectives
+    std::vector<OrdPWMDInter> objectives = otherPrime.makeObjectives(element);
     
-    // Construimos el objeto resultado a partir de la lista 'inter'.
-    return inter;
+    // Exit the loop if objectives is empty
+
+
+    // Update otherPrime with the first component of objectives
+    otherPrime = objectives[0];
+    
+    if (!objectives[1].isEmpty()) {
+      //std::cout << "tenemos posible intersecciones " << std::endl;
+      for (const auto &subElement : objectives[1].pieces_) {
+        
+        //std::cout << "interseccion con "<< subElement << std::endl;
+        // You can now process subElement from objectives[1]
+        SetPiece val = element.intersection(subElement);
+        
+        interLocal.emplaceBack(val);
+
+      }
+    }
+
+    inter = inter.ordSets(interLocal);
+    // Process each element (placeholder for logic)
+    
+    if (objectives[0].isEmpty())
+      break;
+    
+  }
+
+  return inter;*/
+  
 }
-
-
-
- 
 
 OrdPWMDInter OrdPWMDInter::cup(const OrdPWMDInter &other) const
 {
@@ -506,7 +469,9 @@ MDInterOrdSet OrdPWMDInter::traverse(
 OrdPWMDInter OrdPWMDInter::ordSets(const OrdPWMDInter &other) const
 {
   OrdPWMDInter ordered;
-
+  //std::cout << "Entra" << std::endl;
+  //std::cout << *this << std::endl;
+  //std::cout << other << std::endl;
   auto it1 = begin(), it2 = other.begin();
   auto end1 = end(), end2 = other.end();
 
@@ -515,14 +480,17 @@ OrdPWMDInter OrdPWMDInter::ordSets(const OrdPWMDInter &other) const
   for (; it1 != end1 && it2 != end2;) {
       mdi1 = *it1;
       mdi2 = *it2;
-      
-      if (mdi2.whoseFirst(mdi1)){
+
+      int res = mdi1.whoseFirst(mdi2); 
+      //int res = mdi1.minElem() < mdi2.minElem();
+
+      if (res==0){
         ordered.emplaceBack(mdi1);
         ++it1;}
       else{
         ordered.emplaceBack(mdi2);
         ++it2;
-      }
+        }
     }
 
     for (; it1 != end1; ++it1) {
@@ -535,9 +503,45 @@ OrdPWMDInter OrdPWMDInter::ordSets(const OrdPWMDInter &other) const
       ordered.emplaceBack(mdi2);
     }
     
+  //std::cout << "sale"<< std::endl;
+  //std::cout << ordered << std::endl;
   return ordered;
 
 }  
+
+std::vector<OrdPWMDInter> OrdPWMDInter::makeObjectives(const SetPiece &other) const
+{ 
+  OrdPWMDInter nextSet,candidates;
+
+  for (const auto &element : this->pieces_)
+  {
+    if (!(element.maxElem()[0] < other.minElem()[0]))
+    {
+      if (element.maxElem() < other.minElem() or other.maxElem() < element.minElem())
+      {
+        nextSet.emplaceBack(element);
+        //std::cout << "posible interseccion proxima " << std::endl;
+      }
+      else
+      {
+        nextSet.emplaceBack(element);
+        candidates.emplaceBack(element);
+        
+        //std::cout << "posible interseccion proxima y interseccion " << std::endl;
+        
+      }
+      
+    }
+    
+  }
+  std::vector<OrdPWMDInter> res={};
+
+  res.emplace_back(nextSet);
+  res.emplace_back(candidates);
+
+  return res;
+}
+
 
 } // namespace LIB
 

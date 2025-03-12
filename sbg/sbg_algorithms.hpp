@@ -25,6 +25,10 @@
 #define SBG_SBGALGO_HPP
 
 #include <chrono>
+#include <list>
+#include <map>
+#include <set>
+#include <unordered_set>
 
 #include "rapidjson/document.h"
 #include "rapidjson/filewritestream.h"
@@ -69,7 +73,6 @@ struct SBGMatching {
 
   member_class(Set, E);
   member_class(PW, Emap);
-  member_class(PW, subE_map);
 
   //-----------------------------
   member_class(PW, smap); // Successors map
@@ -143,7 +146,6 @@ struct SBGSCC {
   member_class(PW, Vmap);
 
   member_class(PW, Emap);
-  member_class(PW, subE_map);
 
   //-----------------------------
   member_class(Set, E); // Edges in the same SCC in each step

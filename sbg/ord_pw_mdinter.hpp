@@ -29,6 +29,7 @@
 #define SBG_ORD_PW_MDINTERVAL_HPP
 
 #include <boost/container/flat_set.hpp>
+#include <forward_list>
 #include <list>
 #include "sbg/multidim_inter.hpp"
 
@@ -44,6 +45,7 @@ namespace LIB {
 
 typedef boost::container::flat_set<SetPiece> MDInterOrdSet;
 typedef MDInterOrdSet::iterator MDInterOrdSetIt;
+typedef MDInterOrdSet::reverse_iterator MDInterOrdSetItRev;
 typedef MDInterOrdSet::const_iterator MDInterOrdSetConstIt;
 std::ostream &operator<<(std::ostream &out, const MDInterOrdSet &ii);
 
@@ -68,6 +70,7 @@ struct OrdPWMDInter {
   std::size_t size() const;
   void emplace(SetPiece mdi);
   void emplaceBack(SetPiece mdi);
+  MDInterOrdSetIt emplaceHint(SetPiece mdi,MDInterOrdSetIt mov);
 
   bool operator==(const OrdPWMDInter &other) const;
   bool operator!=(const OrdPWMDInter &other) const;

@@ -219,7 +219,7 @@ Util::NAT MultiDimInter::whoseFirst(const MultiDimInter &other) const
     return 1;
 
 
-  for (unsigned int j = 0; j < other.cardinal(); j++)
+  for (unsigned int j = 0; j < other.arity(); j++)
   {
     if (operator[](j).begin() < other[j].begin())
       return 0;
